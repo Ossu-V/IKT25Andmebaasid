@@ -436,3 +436,197 @@ inner join SalesLT.ProductModel
 --antud juhul Producti tabelis ProductModelId võõrvõti,
 --mis ProductModeli tabelis on primaarvõti
 on Product.ProductModelId = ProductModel.ProductModelId
+
+--isnull funktsiooni kasutamine
+select isnull('Ingvar', 'No Manager') as Manager
+
+--NULL asemel kuvab No Manager
+select coalesce(NULL, 'No Manager') as Manager
+
+alter table Employees
+add ManagerId int
+
+select * from Employees
+
+--neile, kellel ei ole ülemust, siis paneb neile No Manager teksti
+--kasutage left joini
+select E.Name as Employee, isnull(M.Name, 'No Manager') as Manager
+from Employees E
+left join Employees M
+on E.ManagerId = M.Id
+
+--kasutame inner joini
+--kuvab ainult ManagerId all olevate isikute väärtuseid
+select E.Name as Employee, M.Name as Manager
+from  Employees E
+inner join Employees M
+on E.ManagerId = M.Id
+
+--kõik saavad kõikide ülemused olla
+select E.Name as Employee, M.Name as Manager
+from Employees E
+cross join Employees M
+
+--lisame tabelisse uued veerud 
+--MiddleName nvarchar 30 
+--LastName nvarchar 30
+
+alter table Employees
+add MiddleName nvarchar(30)
+
+alter table Employees
+add LastName nvarchar(30)
+
+select * from Employees
+
+--muudame olemasoleva veeru nimetust
+sp_rename 'Employees.Name', 'FirstName'
+
+Update Employees
+set MiddleName = 'Nick',
+LastName = 'Jones'
+where Id = 1
+
+Update Employees
+set LastName = 'Anderson'
+where Id = 2
+
+Update Employees
+set LastName = 'Smith' 
+where Id = 4
+
+Update Employees
+set FirstName = NULL, MiddleName = 'Todd', LastName = 'Someone'
+where Id = 5
+
+Update Employees
+set MiddleName = 'Ten', LastName = 'Sven'
+where Id = 6
+
+Update Employees
+set LastName = 'Connor'
+where Id = 7
+
+Update Employees
+set MiddleName = 'Balerine'
+where Id = 8
+
+Update Employees
+set MiddleName = '007', LastName = 'Bond'
+where Id = 9
+
+Update Employees
+set FirstName = NULL, MiddleName = NULL, LastName = 'Crowe'
+where Id = 10
+
+--igast reast võtab esimesena täidetud lahtri ja kuvab ainult seda
+--
+select * from Employees
+select Id, coalesce(FirstName, MiddleName,LastName) as Name from Employees
+
+--loome kask tabelit
+create table IndianCustomers
+(
+Id int identity(1,1),
+Name nvarchar(25),
+Email nvarchar(25)
+)
+
+create table UKCustomers
+(
+Id int identity(1,1),
+Name nvarchar(25),
+Email nvarchar(25)
+)
+
+--sisestame tabelisse andmeid
+insert into IndianCustomers (Name, Email)
+values ('Raj', 'R@R.com'),
+('Sam', 'S@S.com')
+
+insert into UKCustomers (Name, Email)
+values ('Ben', 'B@B.com'),
+('Sam', 'S@S.com')
+
+select * from IndianCustomers
+select * from UKCustomers
+
+--kasutame union all, mis näitab kõiki ridu
+--union all ühendab tabelid ja näitab sisu
+select Id, Name, Email from IndianCustomers
+union all
+select Id, Name, Email from UKCustomers
+
+--korduvate väärtustega read ühte ja ei korrata
+select Id, Name, Email from IndianCustomers
+union
+select Id, Name, Email from UKCustomers
+
+--kasutad union all, aga sorteerid nime järgi
+select Id, Name, Email from IndianCustomers
+union all
+select Id, Name, Email from UKCustomers
+order by Name
+
+--stored procedure
+--tavaliselt pannakse nimetuse ette sp, mis tähendab stored procedure
+create procedure spGetEmployees
+as begin
+	select FirstName, Gender from Employees
+end
+
+--nüüd saab kasutada selle nimelist sp-d
+spGetEmployees
+exec spGetEmployees
+execute spGetEmployees
+
+create proc spGetEmployeesByGenderAndDepartment
+--@ tähendab muutujat
+@Gender nvarchar(20),
+@DepartmentId int 
+as begin
+	select FirstName, Gender, DepartmentId from Employees where Gender = @Gender
+	and DepartmentId = @DepartmentId
+end
+
+--kui nüüd on allolevast käsklust käima panna, siis nõuab gender parameetrit
+spGetEmployeesByGenderAndDepartment
+
+--õige variant
+spGetEmployeesByGenderAndDepartment 'Male', 1 --saab muuta kas Male või Female 
+
+--niimoodi saab sp kirja pandud järjekorrast mööda minna, kui ise paned muutja paika
+spGetEmployeesByGenderAndDepartment @DepartmentId = 1, @Gender = 'male'
+
+--saab svaadata sp sisu result vaates
+sp_helptext spGetEmployeesByGenderAndDepartment
+
+--kuidas muuta sp-d ja panna sinna võti peale, et keegi teine peale teie ei saaks muuta
+--kuskile tuleb lisada with encryption 
+alter proc spGetEmployeesByGenderAndDepartment
+@Gender nvarchar(20),  
+@DepartmentId int
+with encryption
+as begin 
+ select FirstName, Gender, DepartmentId from Employees where Gender = @Gender  
+ and DepartmentId = @DepartmentId  
+end
+
+--sp tegemine
+create proc spGetEmployeeCountByGender
+@Gender nvarchar(20),
+@EmployeeCount int output
+as begin
+	select @EmployeeCount = count(Id) from Employees where Gender = @Gender
+end
+
+--annab tulemuse, kus loendab ära nõuetele vastavad read
+--prindib ka tulemuse kirja teel
+--tuleb teha declare muutuja @TotalCount, mis on int 
+--execute spGetEmployeeCountByGender sp, kus on parameetrid Male ja TotalCount
+--if ja else, kui TotalCount = 0, siis tuleb tekst TotalCount is null
+--lõpus kasutab print @TotalCounti, puhul
+
+declare @TotalCount int
+execute spGetEmployeeCountByGender 'Male', TotalCount
+
