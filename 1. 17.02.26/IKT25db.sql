@@ -622,11 +622,88 @@ end
 
 --annab tulemuse, kus loendab ära nõuetele vastavad read
 --prindib ka tulemuse kirja teel
---tuleb teha declare muutuja @TotalCount, mis on int 
---execute spGetEmployeeCountByGender sp, kus on parameetrid Male ja TotalCount
---if ja else, kui TotalCount = 0, siis tuleb tekst TotalCount is null
---lõpus kasutab print @TotalCounti, puhul
-
+--tuleb teha declare muutuja @TotlaCount, mis on int
 declare @TotalCount int
-execute spGetEmployeeCountByGender 'Male', TotalCount
+--execute spGetEmployeeCountByGender sp, kus on parameetrid Male ja TotalCount
+execute spGetEmployeeCountByGender 'Male', @TotalCount out
+--if ja else, kui TotalCount = 0, siis tuleb tekst TotalCount is null
+if(@TotalCount = 0)
+	print '@TotalCount is null'
+else
+	print '@Total is not null'
+print @TotalCount
+--lõpus kasuta print @TotalCounti puhul
 
+--näitab ära, mitu rida vastab nõuetele
+
+--deklareerime muutuja @TotalCount, mis on int andmetüüp
+declare @TotalCount int 
+--käivitame stored procedure spGetEmployeeCountByGender, kus on parameetrid
+--@EmployeeCount = @TotalCount out ja @Gender
+execute spGetEmployeeCountByGender @EmployeeCount = @TotalCount out, @Gender = 'Female'
+--prindib konsooli välja, kui TotalCount on null või mitte null
+print @TotalCount
+
+--sp sisu vaatamine
+sp_help spGetEmployeeCountByGender
+--tabeli info vaatamine
+sp_help Employees
+--kui soovid sp teksti näha
+sp_helptext spGetEmployeeCountByGender
+
+--vaatame, millest sõltub meie valitud sp
+sp_depends spGetEmployeeCountByGender
+--näitab, et sp sõltub Employees tabelist, kuna seal on count(Id)
+--ja Id on Employees tabelis
+
+--vaatame tabelit
+sp_depends Employees
+
+--teeme sp, mis annab andmeid Id ja Name veergude kohta Employees tabelis
+create proc spGetNameById
+@Id int,
+@Name nvarchar(20) output
+as begin
+	select @Id = Id, @Name = FirstName from Employees
+end
+
+--annab kogu tabeli ridade arvu
+create proc spTotalCount2
+@TotalCount int output
+as begin
+	select @TotalCount = count(Id) from Employees
+end
+
+--on vaja teha uus päring, kus kasutame spTotalCount2 sp-d, 
+--et saada tabelite ridade arv
+
+--tuleb deklareerida muutuja @TotalCount, mis on int andmetüüp
+declare @TotalEmployees int 
+--tuleb execute spTotalCount2, kus on parameeter @TotalEmployees
+exec spTotalCount2 @TotalEmployees output
+print @TotalEmployees
+
+--mis Id all on keegi nime järgi 
+create proc spGetNameById1
+@Id int,
+@FirstName nvarchar(20) output
+as begin
+	select @FirstName = FirstName from Employees where Id = @Id
+end
+
+--annab tulemuse, kus Id 1(seda numbrit saab muuta) real on keegi koos nimega
+--printi tuleb kasutada, et näidata tulemust
+declare @FirstName nvarchar(20)
+exec spGetNameById1 3, @FirstName output --numbrit peale spGetNameById saab muuta
+print 'Name of the employee = ' + @FirstName
+
+--tehke sama, mis eelmine, aga kasutage spGetNameById sp-d
+--FirstName lõpus on out
+declare @FirstName nvarchar(20)
+exec spGetNameById 1, @FirstName out
+print 'Name = ' + @FirstName
+
+--output tagastab muudetud read kohe päringu tulemusena
+--see on salvestatud protseduuris ja ühe väärtuse tagastamine
+
+--out ei anna mitte midagi, kui seda ei määra execute käsus
