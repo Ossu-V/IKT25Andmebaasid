@@ -1015,3 +1015,51 @@ full outer join SalesLT.CustomerAddress
 select CustomerID, ProductID
 from SalesLT.Customer
 cross join SalesLT.Product;
+
+--1.
+create proc GetAllCustomers
+as begin
+	select CustomerID, FirstName, MiddleName, LastName from SalesLT.Customer
+end
+
+execute GetAllCustomers
+
+--2.
+create proc GetCustomerByID
+@CustomerID int
+as begin
+	select FirstName,LastName,EmailAddress from SalesLT.Customer
+end
+
+GetCustomerByID 1
+
+--3.
+create proc GetOrdersByDateRange
+@StartDate Date,
+@EndDate Date
+
+as begin
+	select OrderDate from SalesLT.SalesOrderHeader
+end
+
+execute GetOrdersByDateRange @StartDate = '2008-06-01 00:00:00.000', @EndDate = '2008-06-08 00:00:00.000'
+
+--4. 
+create proc AddNewProduct
+@Name nvarchar(20),
+@ProductNumber int,
+@ListPrice int,
+@StandardCost int,
+@SellStartDate int = GETDATE()
+as begin
+	insert into SalesLT.Product values (@Name, @ProductNumber, @ListPrice, @StandardCost, @SellStartDate)
+end
+
+--5
+create proc UpdateProductPrice
+@ProductID int,
+@NewPrice int
+as begin
+	update SalesLT.Product set ListPrice = @NewPrice
+end
+
