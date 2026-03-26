@@ -987,3 +987,31 @@ as begin
 end
 
 select Id, Name, DateOfBirth, dbo.fnComputeAge(DateOfBirth) as Age from EmployeeWithDates
+
+select CustomerID, FirstName, LastName, City
+from SalesLT.Customer
+inner join SalesLT.Address
+    on SalesLT.Customer.CustomerID = SalesLT.Address.AddressID;
+
+select SalesLT.Customer.CustomerID, FirstName, LastName, City
+from SalesLT.Customer
+left join SalesLT.CustomerAddress
+    on SalesLT.Customer.CustomerID = SalesLT.CustomerAddress.CustomerID
+left join SalesLT.Address
+    on SalesLT.CustomerAddress.AddressID = SalesLT.Address.AddressID;
+
+select SalesLT.Customer.CustomerID, FirstName, LastName, City
+from SalesLT.Customer
+right join SalesLT.CustomerAddress
+    on SalesLT.Customer.CustomerID = SalesLT.CustomerAddress.CustomerID
+right join SalesLT.Address
+    on SalesLT.CustomerAddress.AddressID = SalesLT.Address.AddressID;
+
+select SalesLT.Customer.CustomerID, FirstName, LastName, SalesLT.CustomerAddress.AddressID
+from SalesLT.Customer
+full outer join SalesLT.CustomerAddress
+    on SalesLT.Customer.CustomerID = SalesLT.CustomerAddress.CustomerID;
+
+select CustomerID, ProductID
+from SalesLT.Customer
+cross join SalesLT.Product;
