@@ -1137,3 +1137,141 @@ exec dbo.CalculateAge '1980-12-30'
 select Id, Name, dbo.CalculateAge(DateOfBirth) as Age from EmployeeWithDates
 where dbo.CalculateAge(DateOfBirth) > 36
 
+--inline table valued functions 
+alter table EmployeeWithDates
+add DepartmentId int
+alter table EmployeeWithDates
+add Gender nvarchar(10)
+
+select * from EmployeeWithDates
+
+Update EmployeeWithDates
+set DepartmentId = 1, Gender = 'Male'
+where Id = 1
+
+Update EmployeeWithDates
+set DepartmentId = 2, Gender = 'Female'
+where Id = 2
+
+Update EmployeeWithDates
+set DepartmentId = 1, Gender = 'Male'
+where Id = 3
+
+Update EmployeeWithDates
+set DepartmentId = 3, Gender = 'Female'
+where Id = 4
+
+insert into EmployeeWithDates (Id, Name, DateOfBirth, DepartmentId, Gender)
+values (5, 'Todd', '1978-11-29 12:59:30:670', 1, 'Male')
+
+--scalar function annab mingis vahemikus olevaid andmeid,
+--inline table values ei kasuta begin ja end funktsioone
+--scalar annab väärtused ja inline annab tabeli
+
+create function fn_EmployeesByGender(@Gender nvarchar(10))
+returns table
+as
+return (select Id, Name, DateOfBirth, DepartmentId, Gender
+		from EmployeeWithDates
+		where Gender = @Gender)
+
+--kuidas leida kõik naised tabelis EmployeeWithDates
+--ja kasutada funktsiooni fn_EmployeesByGender
+select * from fn_EmployeesByGender('female')
+
+--tahaks ainult Pami
+select * from fn_EmployeesByGender('Female')
+where Name = 'Pam'
+
+select * from Department
+
+--kahest erinevast tabelist andmete võtmine ja koos kuvamine
+--esimene on funktsioon ja teine tabel
+
+select Name, Gender, DepartmentName
+from fn_EmployeesByGender('Male') E
+join Department D on D.Id = E.DepartmentId
+
+--multi tabel statement
+--inline funktsioon
+create function fn_GetEmployees()
+returns table as
+return (select Id, Name, cast(DateOfBirth as date)
+		as DOB
+		from EmployeeWithDates)
+
+select * from fn_GetEmployees()
+
+--multi-state puhul peab defineerima uue tabeli veerud kood muutujatega 
+--funktsiooni nimi on fn_MS_GetEmployees()
+--peab edastama meile Id, Name, DOB tabelist EmployeeWithDates
+
+create function fn_MS_GetEmployees()
+returns @Table Table (Id int, Name nvarchar(20), DOB date)
+as begin
+	insert into @Table
+	select Id, Name, cast(DateOfBirth as date) from EmployeeWithDates
+	return
+end
+
+select * from fn_MS_GetEmployees()
+
+--inline tabeli funktsioonid on paremini töötamas kuna käsitletakse vaatena
+--multi puhul on pm tegemist stored proceduriga ja kulutab ressurssi rohkem
+
+--muudame andmied ja vaatame, kas inline funktsioonis on muutused kajastatud
+update fn_GetEmployees() set Name = 'Sam1' where Id = 1
+select * from fn_MS_GetEmployees() --saab muuta andmeid
+
+update fn_MS_GetEmployees() set Name = 'Sam2' where Id = 1
+--ei saa muuta andmeid multi state funktsioonis,
+--kuna see on nagu stored procedure
+
+--deterministic vs non-deterministic functions
+--deterministlic funktsioonid annavad alati sama tulemuse, kui sisend on sama
+select count(*) from EmployeeWithDates
+select square(4)
+
+--non-deterministic fuktsioonid annavad erineva tulemuse, kui sisend on sama
+select getdate()
+select current_timestamp
+select rand()
+
+---
+--AdventureWorksLY2019 tunni töö
+
+--GetAllCustomers_ITVF
+create function fn_GetAllCustomers_ITVF()
+returns table as
+return (select * from SalesLT.Customer)
+
+select * from fn_GetAllCustomers_ITVF()
+
+--GetCustomerByID_ITVF
+create function fn_GetCustomerByID_ITVF(@CustomerID int)
+returns table as
+return (select FirstName, LastName from SalesLT.Customer
+where CustomerID = @CustomerID)
+
+select * from fn_GetCustomerByID_ITVF(1) --numbrit saab muuta vastavalt soovile
+
+--GetOrdersByCustomer_ITVF
+create function GetOrdersByCustomer_ITVF(@CustomerID int)
+returns table as
+return (select * from SalesLT.SalesOrderHeader 
+where CustomerID = CustomerID)
+
+select * from GetOrdersByCustomer_ITVF(1)
+
+--GetProductsByPrice_ITVF
+create function GetProductsByPrice(@MinPrice int, @MaxPrice int)
+returns table as
+return (select * from SalesLT.Product 
+where (ListPrice between @MinPrice and @MaxPrice))
+
+select * from GetProductsByPrice(50, 100)
+
+--GetTopExpensiveProducts_ITVF
+create function GetTopExpensiveProducts_ITVF
+returns table as
+return(select )
