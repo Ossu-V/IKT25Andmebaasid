@@ -2573,7 +2573,8 @@ begin
 	set @Counter = @Counter + 1
 end
 
-
+select * from Product
+select * from ProductSales
 
 
 
